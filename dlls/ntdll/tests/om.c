@@ -22,6 +22,7 @@
 #include "ntdll_test.h"
 #include "winternl.h"
 #include "winuser.h"
+#include "winioctl.h"
 #include "ddk/wdm.h"
 #include "stdio.h"
 #include "winnt.h"
@@ -206,6 +207,104 @@ static void test_namespace_pipe(void)
     pNtClose( h );
 
     pNtClose(pipe);
+}
+
+static NTSTATUS fsctl(HANDLE handle, ULONG code, void *inbuf, ULONG insize, void *outbuf, ULONG outsize)
+{
+    HANDLE event;
+    NTSTATUS status;
+    OBJECT_ATTRIBUTES attr;
+    IO_STATUS_BLOCK iosb;
+
+    InitializeObjectAttributes(&attr, NULL, 0, 0, NULL);
+    status = pNtCreateEvent(&event, GENERIC_ALL, &attr, NotificationEvent, FALSE);
+    ok(status == STATUS_SUCCESS, "NtCreateEvent failure: %08x\n", status);
+
+    memset(&iosb, 0, sizeof(iosb));
+    iosb.Status = STATUS_PENDING;
+    status = NtFsControlFile(handle, event, NULL, NULL, &iosb, FSCTL_PIPE_WAIT,
+                             inbuf, insize, outbuf, outsize);
+    if (status == STATUS_PENDING)
+    {
+        while ((status = iosb.Status) == STATUS_PENDING)
+        {
+            WaitForSingleObject(event, INFINITE);
+        }
+    }
+    else if (status == STATUS_SUCCESS)
+    {
+        status = iosb.Status;
+    }
+
+    pNtClose(event);
+    return status;
+}
+
+static void test_pipe_device_file_as_root(void)
+{
+    OBJECT_ATTRIBUTES attr;
+    UNICODE_STRING str;
+    IO_STATUS_BLOCK iosb;
+    NTSTATUS status;
+    LARGE_INTEGER timeout;
+    HANDLE pipe, root, h;
+    union {
+        FILE_PIPE_WAIT_FOR_BUFFER d;
+        unsigned char buf[offsetof(FILE_PIPE_WAIT_FOR_BUFFER, Name[32])];
+    } pipe_wait;
+
+    timeout.QuadPart = -10000;
+
+    pRtlInitUnicodeString(&str, L"\\Device\\NamedPipe");
+    InitializeObjectAttributes(&attr, &str, 0, 0, NULL);
+    status = pNtOpenFile(&root, GENERIC_READ, &attr, &iosb, FILE_SHARE_READ|FILE_SHARE_WRITE, 0);
+    ok(status == STATUS_SUCCESS, "NtOpenFile should have succeeded, but got %08x\n", status);
+
+    memset( &pipe_wait.d, 0, sizeof(pipe_wait.d) );
+    pipe_wait.d.Timeout.QuadPart = 0;
+    pipe_wait.d.TimeoutSpecified = TRUE;
+    wcscpy( pipe_wait.d.Name, L"nonexistent" );
+    pipe_wait.d.NameLength = wcslen(pipe_wait.d.Name);
+
+    status = fsctl(root, FSCTL_PIPE_WAIT, &pipe_wait, sizeof(pipe_wait), NULL, 0);
+    todo_wine ok(status == STATUS_ILLEGAL_FUNCTION, "unexpected status for FSCTL_PIPE_WAIT on \\Device\\NamedPipe: %08x\n", status);
+
+    pRtlInitUnicodeString(&str, L"test3\\pipe");
+    InitializeObjectAttributes(&attr, &str, 0, root, NULL);
+    status = pNtCreateNamedPipeFile(&pipe, GENERIC_READ|GENERIC_WRITE, &attr, &iosb, FILE_SHARE_READ|FILE_SHARE_WRITE,
+                                    FILE_CREATE, FILE_PIPE_FULL_DUPLEX, 0, 0, 0, 1, 256, 256, &timeout);
+    ok(status == STATUS_OBJECT_NAME_INVALID, "unexpected status from NtCreateNamedPipeFile: %08x\n", status);
+
+    if (SUCCEEDED(status)) pNtClose(pipe);
+    pNtClose(root);
+
+    pRtlInitUnicodeString(&str, L"\\Device\\NamedPipe\\");
+    InitializeObjectAttributes(&attr, &str, 0, 0, NULL);
+    status = pNtOpenFile(&root, GENERIC_READ, &attr, &iosb, FILE_SHARE_READ|FILE_SHARE_WRITE, 0);
+    ok(status == STATUS_SUCCESS, "NtOpenFile should have succeeded, but got %08x\n", status);
+
+    memset( &pipe_wait.d, 0, sizeof(pipe_wait.d) );
+    pipe_wait.d.Timeout.QuadPart = 0;
+    pipe_wait.d.TimeoutSpecified = TRUE;
+    wcscpy( pipe_wait.d.Name, L"nonexistent_pipe" );
+    pipe_wait.d.NameLength = wcslen(pipe_wait.d.Name);
+
+    status = fsctl(root, FSCTL_PIPE_WAIT, &pipe_wait, sizeof(pipe_wait), NULL, 0);
+    ok(status == STATUS_OBJECT_NAME_NOT_FOUND, "unexpected status for FSCTL_PIPE_WAIT on \\Device\\NamedPipe\\: %08x\n", status);
+
+    pRtlInitUnicodeString(&str, L"test3\\pipe");
+    InitializeObjectAttributes(&attr, &str, 0, root, NULL);
+    status = pNtCreateNamedPipeFile(&pipe, GENERIC_READ|GENERIC_WRITE, &attr, &iosb, FILE_SHARE_READ|FILE_SHARE_WRITE,
+                                    FILE_CREATE, FILE_PIPE_FULL_DUPLEX, 0, 0, 0, 1, 256, 256, &timeout);
+    todo_wine ok(status == STATUS_SUCCESS, "unexpected failure from NtCreateNamedPipeFile: %08x\n", status);
+
+    h = CreateFileA("\\\\.\\pipe\\test3\\pipe", GENERIC_READ, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL,
+                    OPEN_EXISTING, 0, 0 );
+    todo_wine ok(h != INVALID_HANDLE_VALUE, "Failed to open NamedPipe (%u)\n", GetLastError());
+
+    pNtClose(h);
+    pNtClose(pipe);
+    pNtClose(root);
 }
 
 #define check_create_open_dir(parent, name, status) check_create_open_dir_(__LINE__, parent, name, status)
@@ -2769,6 +2868,7 @@ START_TEST(om)
 
     test_case_sensitive();
     test_namespace_pipe();
+    test_pipe_device_file_as_root();
     test_name_collisions();
     test_name_limits();
     test_directory();
