@@ -267,7 +267,7 @@ static void test_pipe_device_file_as_root(void)
     pipe_wait.d.NameLength = wcslen(pipe_wait.d.Name);
 
     status = fsctl(root, FSCTL_PIPE_WAIT, &pipe_wait, sizeof(pipe_wait), NULL, 0);
-    todo_wine ok(status == STATUS_ILLEGAL_FUNCTION, "unexpected status for FSCTL_PIPE_WAIT on \\Device\\NamedPipe: %08x\n", status);
+    ok(status == STATUS_ILLEGAL_FUNCTION, "unexpected status for FSCTL_PIPE_WAIT on \\Device\\NamedPipe: %08x\n", status);
 
     pRtlInitUnicodeString(&str, L"test3\\pipe");
     InitializeObjectAttributes(&attr, &str, 0, root, NULL);
@@ -296,11 +296,11 @@ static void test_pipe_device_file_as_root(void)
     InitializeObjectAttributes(&attr, &str, 0, root, NULL);
     status = pNtCreateNamedPipeFile(&pipe, GENERIC_READ|GENERIC_WRITE, &attr, &iosb, FILE_SHARE_READ|FILE_SHARE_WRITE,
                                     FILE_CREATE, FILE_PIPE_FULL_DUPLEX, 0, 0, 0, 1, 256, 256, &timeout);
-    todo_wine ok(status == STATUS_SUCCESS, "unexpected failure from NtCreateNamedPipeFile: %08x\n", status);
+    ok(status == STATUS_SUCCESS, "unexpected failure from NtCreateNamedPipeFile: %08x\n", status);
 
     h = CreateFileA("\\\\.\\pipe\\test3\\pipe", GENERIC_READ, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL,
                     OPEN_EXISTING, 0, 0 );
-    todo_wine ok(h != INVALID_HANDLE_VALUE, "Failed to open NamedPipe (%u)\n", GetLastError());
+    ok(h != INVALID_HANDLE_VALUE, "Failed to open NamedPipe (%u)\n", GetLastError());
 
     pNtClose(h);
     pNtClose(pipe);
@@ -1977,7 +1977,7 @@ static void test_query_object(void)
     handle = CreateFileA( "\\\\.\\pipe\\", 0, 0, NULL, OPEN_EXISTING, 0, 0 );
     ok( handle != INVALID_HANDLE_VALUE, "CreateFile failed (%lu)\n", GetLastError() );
 
-    test_object_name( handle, L"\\Device\\NamedPipe\\", TRUE );
+    test_object_name( handle, L"\\Device\\NamedPipe\\", FALSE );
     test_object_type( handle, L"File" );
     test_file_info( handle );
 
