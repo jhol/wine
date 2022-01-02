@@ -533,32 +533,79 @@ DECL_HANDLER(open_directory)
 }
 
 /* get a directory entry by index */
-DECL_HANDLER(get_directory_entry)
+DECL_HANDLER(get_directory_entries)
 {
     struct directory *dir = (struct directory *)get_handle_obj( current->process, req->handle,
                                                                 DIRECTORY_QUERY, &directory_ops );
     if (dir)
     {
-        struct object *obj = find_object_index( dir->entries, req->index );
-        if (obj)
+        struct directory_entry *entry;
+        struct object *obj;
+        data_size_t size;
+        unsigned int i;
+        char *buffer;
+
+        reply->count = 0;
+        reply->total_count = 0;
+        reply->total_len = 0;
+
+        size = 0;
+        for (i = 0; i < req->max_count; ++i)
         {
+            const struct unicode_str *type_name;
             data_size_t name_len;
-            const struct unicode_str *type_name = &obj->ops->type->name;
-            const WCHAR *name = get_object_name( obj, &name_len );
+            size_t entry_size;
 
-            reply->total_len = name_len + type_name->len;
+            if (!(obj = find_object_index( dir->entries, req->index + reply->total_count )))
+                break;
+            type_name = &obj->ops->type->name;
+            get_object_name( obj, &name_len );
+            entry_size = (sizeof(*entry) + name_len + type_name->len + 3) & ~3;
 
-            if (reply->total_len <= get_reply_max_size())
+            reply->total_count++;
+            reply->total_len += name_len + type_name->len;
+
+            if (size + entry_size <= get_reply_max_size())
             {
-                void *ptr = set_reply_data_size( reply->total_len );
-                if (ptr)
-                {
-                    reply->name_len = name_len;
-                    memcpy( ptr, name, name_len );
-                    memcpy( (char *)ptr + name_len, type_name->str, type_name->len );
-                }
+                reply->count++;
+                size += entry_size;
             }
-            else set_error( STATUS_BUFFER_TOO_SMALL );
+
+            release_object( obj );
+        }
+
+        if (!(buffer = set_reply_data_size( size )))
+        {
+            release_object( dir );
+            return;
+        }
+
+        size = 0;
+        for (i = 0; i < reply->count; ++i)
+        {
+            const struct unicode_str *type_name;
+            data_size_t name_len;
+            const WCHAR *name;
+
+            obj = find_object_index( dir->entries, req->index + i );
+            assert( obj );
+            type_name = &obj->ops->type->name;
+            name = get_object_name( obj, &name_len );
+
+            entry = (struct directory_entry *)(buffer + size);
+            entry->name_len = name_len;
+            entry->type_len = type_name->len;
+
+            size += sizeof(entry);
+            memcpy( buffer + size, name, name_len );
+            size += name_len;
+            memcpy( buffer + size, type_name->str, type_name->len );
+            size += type_name->len;
+            if (size & 3)
+            {
+                memset( buffer + size, 0, 4 - (size & 3) );
+                size += 4 - (size & 3);
+            }
 
             release_object( obj );
         }
