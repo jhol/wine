@@ -3229,7 +3229,7 @@ static NTSTATUS grow_thread_stack( char *page, struct thread_stack_info *stack_i
 {
     NTSTATUS ret = 0;
 
-    set_page_vprot_bits( page, page_size, 0, VPROT_GUARD );
+    set_page_vprot_bits( page, page_size, VPROT_COMMITTED | VPROT_READ | VPROT_WRITE, VPROT_GUARD );
     mprotect_range( page, page_size, 0, 0 );
     if (page >= stack_info->start + page_size + stack_info->guaranteed)
     {
