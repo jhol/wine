@@ -126,6 +126,15 @@
 
 #ifdef HAVE_FREETYPE
 
+void __attribute__((optimize("O0"))) expand_stack_recursive(int level)
+{
+    char buf[0x1000];
+    buf[0] = 0;
+    buf[sizeof(buf)-1] = 0;
+    if (level)
+        expand_stack_recursive(level-1);
+}
+
 WINE_DEFAULT_DEBUG_CHANNEL(font);
 
 #ifndef HAVE_FT_TRUETYPEENGINETYPE
@@ -1570,6 +1579,14 @@ static void fontconfig_add_font( FcPattern *pattern, DWORD flags )
 static void init_fontconfig(void)
 {
     void *fc_handle = dlopen(SONAME_LIBFONTCONFIG, RTLD_NOW);
+
+    int static called;
+    if (!called) {
+      //ERR("before expand_stack_recursive\n");
+      expand_stack_recursive(20);
+      //ERR("after  expand_stack_recursive\n");
+      called = 1;
+    }
 
     if (!fc_handle)
     {
@@ -3438,6 +3455,14 @@ static DWORD freetype_get_glyph_outline( struct gdi_font *font, UINT glyph, UINT
     FT_Int load_flags = get_load_flags(format);
     FT_Matrix transform_matrices[3], *matrices = NULL;
     BOOL vertical_metrics;
+
+    int static called;
+    if (!called) {
+      //ERR("before expand_stack_recursive\n");
+      expand_stack_recursive(20);
+      //ERR("after  expand_stack_recursive\n");
+      called = 1;
+    }
 
     TRACE("%p, %04x, %08x, %p, %08x, %p, %p\n", font, glyph, format, lpgm, buflen, buf, lpmat);
 
