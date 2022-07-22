@@ -1682,6 +1682,8 @@ static void mprotect_range( void *base, size_t size, BYTE set, BYTE clear )
     char *addr = ROUND_ADDR( base, page_mask );
     int prot, next;
 
+    //ERR("%p-%p set=%d clear=%d\n", base, (char*)base + size, set, clear);
+
     size = ROUND_SIZE( base, size );
     prot = get_unix_prot( (get_page_vprot( addr ) & ~clear ) | set );
     for (count = i = 1; i < size >> page_shift; i++, count++)

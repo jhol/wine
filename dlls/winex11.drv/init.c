@@ -46,6 +46,14 @@ static pthread_once_t init_once = PTHREAD_ONCE_INIT;
 static const struct user_driver_funcs x11drv_funcs;
 static const struct gdi_dc_funcs *xrender_funcs;
 
+void __attribute__((optimize("O0"))) expand_stack_recursive(int level)
+{
+    char buf[0x1000];
+    buf[0] = 0;
+    buf[sizeof(buf)-1] = 0;
+    if (level)
+        expand_stack_recursive(level-1);
+}
 
 void init_recursive_mutex( pthread_mutex_t *mutex )
 {
@@ -65,6 +73,14 @@ void init_recursive_mutex( pthread_mutex_t *mutex )
  */
 static void device_init(void)
 {
+    int static called;
+    if (!called) {
+      //ERR("before expand_stack_recursive\n");
+      expand_stack_recursive(10);
+      //ERR("after  expand_stack_recursive\n");
+      called = 1;
+    }
+
     /* Initialize XRender */
     xrender_funcs = X11DRV_XRender_Init();
 
