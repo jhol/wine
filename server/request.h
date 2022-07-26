@@ -345,7 +345,7 @@ DECL_HANDLER(create_mailslot);
 DECL_HANDLER(set_mailslot_info);
 DECL_HANDLER(create_directory);
 DECL_HANDLER(open_directory);
-DECL_HANDLER(get_directory_entry);
+DECL_HANDLER(get_directory_entries);
 DECL_HANDLER(create_symlink);
 DECL_HANDLER(open_symlink);
 DECL_HANDLER(query_symlink);
@@ -628,7 +628,7 @@ static const req_handler req_handlers[REQ_NB_REQUESTS] =
     (req_handler)req_set_mailslot_info,
     (req_handler)req_create_directory,
     (req_handler)req_open_directory,
-    (req_handler)req_get_directory_entry,
+    (req_handler)req_get_directory_entries,
     (req_handler)req_create_symlink,
     (req_handler)req_open_symlink,
     (req_handler)req_query_symlink,
@@ -1005,7 +1005,8 @@ C_ASSERT( sizeof(struct alloc_file_handle_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct alloc_file_handle_reply, handle) == 8 );
 C_ASSERT( sizeof(struct alloc_file_handle_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct get_handle_unix_name_request, handle) == 12 );
-C_ASSERT( sizeof(struct get_handle_unix_name_request) == 16 );
+C_ASSERT( FIELD_OFFSET(struct get_handle_unix_name_request, nofollow) == 16 );
+C_ASSERT( sizeof(struct get_handle_unix_name_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct get_handle_unix_name_reply, name_len) == 8 );
 C_ASSERT( sizeof(struct get_handle_unix_name_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct get_handle_fd_request, handle) == 12 );
@@ -2024,12 +2025,14 @@ C_ASSERT( FIELD_OFFSET(struct open_directory_request, rootdir) == 20 );
 C_ASSERT( sizeof(struct open_directory_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct open_directory_reply, handle) == 8 );
 C_ASSERT( sizeof(struct open_directory_reply) == 16 );
-C_ASSERT( FIELD_OFFSET(struct get_directory_entry_request, handle) == 12 );
-C_ASSERT( FIELD_OFFSET(struct get_directory_entry_request, index) == 16 );
-C_ASSERT( sizeof(struct get_directory_entry_request) == 24 );
-C_ASSERT( FIELD_OFFSET(struct get_directory_entry_reply, total_len) == 8 );
-C_ASSERT( FIELD_OFFSET(struct get_directory_entry_reply, name_len) == 12 );
-C_ASSERT( sizeof(struct get_directory_entry_reply) == 16 );
+C_ASSERT( FIELD_OFFSET(struct get_directory_entries_request, handle) == 12 );
+C_ASSERT( FIELD_OFFSET(struct get_directory_entries_request, index) == 16 );
+C_ASSERT( FIELD_OFFSET(struct get_directory_entries_request, max_count) == 20 );
+C_ASSERT( sizeof(struct get_directory_entries_request) == 24 );
+C_ASSERT( FIELD_OFFSET(struct get_directory_entries_reply, count) == 8 );
+C_ASSERT( FIELD_OFFSET(struct get_directory_entries_reply, total_count) == 12 );
+C_ASSERT( FIELD_OFFSET(struct get_directory_entries_reply, total_len) == 16 );
+C_ASSERT( sizeof(struct get_directory_entries_reply) == 24 );
 C_ASSERT( FIELD_OFFSET(struct create_symlink_request, access) == 12 );
 C_ASSERT( sizeof(struct create_symlink_request) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_symlink_reply, handle) == 8 );
