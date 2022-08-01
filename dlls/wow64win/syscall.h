@@ -232,15 +232,19 @@
     SYSCALL_ENTRY( NtUserDisableThreadIme ) \
     SYSCALL_ENTRY( NtUserDispatchMessage ) \
     SYSCALL_ENTRY( NtUserDragDetect ) \
+    SYSCALL_ENTRY( NtUserDrawCaptionTemp ) \
     SYSCALL_ENTRY( NtUserDrawIconEx ) \
+    SYSCALL_ENTRY( NtUserDrawMenuBarTemp ) \
     SYSCALL_ENTRY( NtUserEmptyClipboard ) \
     SYSCALL_ENTRY( NtUserEnableMenuItem ) \
     SYSCALL_ENTRY( NtUserEnableScrollBar ) \
     SYSCALL_ENTRY( NtUserEndDeferWindowPosEx ) \
     SYSCALL_ENTRY( NtUserEndMenu ) \
+    SYSCALL_ENTRY( NtUserEndPaint ) \
     SYSCALL_ENTRY( NtUserEnumDisplayDevices ) \
     SYSCALL_ENTRY( NtUserEnumDisplayMonitors ) \
     SYSCALL_ENTRY( NtUserEnumDisplaySettings ) \
+    SYSCALL_ENTRY( NtUserExcludeUpdateRgn ) \
     SYSCALL_ENTRY( NtUserFindExistingCursorIcon ) \
     SYSCALL_ENTRY( NtUserFindWindowEx ) \
     SYSCALL_ENTRY( NtUserFlashWindowEx ) \
@@ -328,10 +332,13 @@
     SYSCALL_ENTRY( NtUserRegisterClassExWOW ) \
     SYSCALL_ENTRY( NtUserRegisterHotKey ) \
     SYSCALL_ENTRY( NtUserRegisterRawInputDevices ) \
+    SYSCALL_ENTRY( NtUserReleaseDC ) \
     SYSCALL_ENTRY( NtUserRemoveClipboardFormatListener ) \
     SYSCALL_ENTRY( NtUserRemoveMenu ) \
     SYSCALL_ENTRY( NtUserRemoveProp ) \
+    SYSCALL_ENTRY( NtUserScrollDC ) \
     SYSCALL_ENTRY( NtUserScrollWindowEx ) \
+    SYSCALL_ENTRY( NtUserSelectPalette ) \
     SYSCALL_ENTRY( NtUserSendInput ) \
     SYSCALL_ENTRY( NtUserSetActiveWindow ) \
     SYSCALL_ENTRY( NtUserSetCapture ) \
@@ -388,6 +395,7 @@
     SYSCALL_ENTRY( NtUserUnregisterClass ) \
     SYSCALL_ENTRY( NtUserUnregisterHotKey ) \
     SYSCALL_ENTRY( NtUserUpdateInputContext ) \
+    SYSCALL_ENTRY( NtUserUpdateLayeredWindow ) \
     SYSCALL_ENTRY( NtUserVkKeyScanEx ) \
     SYSCALL_ENTRY( NtUserWaitForInputIdle ) \
     SYSCALL_ENTRY( NtUserWindowFromDC ) \
