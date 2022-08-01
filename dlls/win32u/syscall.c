@@ -184,6 +184,7 @@ static void * const syscalls[] =
     NtGdiSetBoundsRect,
     NtGdiSetBrushOrg,
     NtGdiSetColorAdjustment,
+    SetDIBits,
     NtGdiSetDIBitsToDeviceInternal,
     NtGdiSetDeviceGammaRamp,
     NtGdiSetLayout,
@@ -416,6 +417,9 @@ static void * const syscalls[] =
     NtUserWaitForInputIdle,
     NtUserWindowFromDC,
     NtUserWindowFromPoint,
+    __wine_get_brush_bitmap_info,
+    __wine_get_file_outline_text_metric,
+    __wine_get_icm_profile,
 };
 
 static BYTE arguments[ARRAY_SIZE(syscalls)];
