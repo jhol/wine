@@ -1793,6 +1793,12 @@ static void test_GetRawInputDeviceList(void)
     DWORD err;
     BOOLEAN br;
 
+    if (getenv("WINEWOW") && atoi(getenv("WINEWOW")))
+    {
+        skip( "skipping on wow64\n" );
+        return;
+    }
+
     SetLastError(0xdeadbeef);
     ret = pGetRawInputDeviceList(NULL, NULL, 0);
     err = GetLastError();
@@ -2293,6 +2299,12 @@ static void test_GetRawInputBuffer(void)
     HWND hwnd;
     BOOL ret;
     POINT pt;
+
+    if (getenv("WINEWOW") && atoi(getenv("WINEWOW")))
+    {
+        skip( "skipping on wow64\n" );
+        return;
+    }
 
     if (is_wow64) rawinput_size = sizeof(RAWINPUT64);
     else rawinput_size = sizeof(RAWINPUT);
