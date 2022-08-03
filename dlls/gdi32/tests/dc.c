@@ -695,6 +695,7 @@ static void test_DC_bitmap(void)
 
     /* test DescribePixelFormat with descr == NULL */
     ret2 = DescribePixelFormat(hdcmem, 0, sizeof(descr), NULL);
+    todo_wine_if(getenv("WINEWOW") && atoi(getenv("WINEWOW"))) /* needs opengl */
     ok(ret2 > 0, "expected ret2 > 0, got %d\n", ret2);
     ret = DescribePixelFormat(hdcmem, 1, sizeof(descr), NULL);
     ok(ret == ret2, "expected ret == %d, got %d\n", ret2, ret);
@@ -710,6 +711,7 @@ static void test_DC_bitmap(void)
     memset(&descr, 0, sizeof(descr));
     ret = DescribePixelFormat(hdcmem, 1, sizeof(descr), &descr);
     ok(ret == ret2, "expected ret == %d, got %d\n", ret2, ret);
+    todo_wine_if(getenv("WINEWOW") && atoi(getenv("WINEWOW"))) /* needs opengl */
     ok(descr.nSize == sizeof(descr), "expected desc.nSize == sizeof(descr), got %d\n", descr.nSize);
 
     memset(&descr, 0, sizeof(descr));
