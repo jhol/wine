@@ -650,6 +650,18 @@ static void init_paths( char *argv[] )
     set_config_dir();
 }
 
+/* whether to use wow64 for i386 EXEs or launch a 32-bit wine */
+BOOL needs_wow64(void)
+{
+    static int ret = -1;
+    if (ret == -1)
+    {
+        const char *val = getenv( "WINEWOW" );
+        ret = val && val[0] != '0';
+    }
+    return ret;
+}
+
 
 static void preloader_exec( char **argv )
 {
@@ -687,7 +699,7 @@ static NTSTATUS loader_exec( const char *loader, char **argv, WORD machine )
 
     if (build_dir)
     {
-        argv[1] = build_path( build_dir, (machine == IMAGE_FILE_MACHINE_AMD64) ? "loader/wine64" : "loader/wine" );
+        argv[1] = build_path( build_dir, (machine == IMAGE_FILE_MACHINE_AMD64) ? "loader/wine64" : needs_wow64() ? "loader/wine64" : "loader/wine" );
         preloader_exec( argv );
         return STATUS_INVALID_IMAGE_FORMAT;
     }
@@ -758,7 +770,7 @@ NTSTATUS exec_wineloader( char **argv, int socketfd, const pe_image_info_t *pe_i
             loader = env;
             putenv( env );
         }
-        else loader = is_child_64bit ? "wine64" : "wine";
+        else loader = is_child_64bit ? "wine64" : needs_wow64() ? "wine64" : "wine";
     }
 
     signal( SIGPIPE, SIG_DFL );
@@ -2176,7 +2188,7 @@ static void start_main_thread(void)
     if (main_image_info.Machine != current_machine) load_wow64_ntdll( main_image_info.Machine );
     load_apiset_dll();
     ntdll_init_syscalls( 0, &syscall_table, p__wine_syscall_dispatcher );
-    status = p__wine_set_unix_funcs( NTDLL_UNIXLIB_VERSION, &unix_funcs );
+    status = needs_wow64() ? 0 : p__wine_set_unix_funcs( NTDLL_UNIXLIB_VERSION, &unix_funcs );
     if (status == STATUS_REVISION_MISMATCH)
     {
         ERR( "ntdll library version mismatch\n" );
