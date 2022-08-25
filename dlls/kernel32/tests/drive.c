@@ -26,6 +26,11 @@
 #include "winerror.h"
 
 static DWORD (WINAPI *pGetDiskFreeSpaceExA)(LPCSTR, PULARGE_INTEGER, PULARGE_INTEGER, PULARGE_INTEGER);
+static HANDLE (WINAPI *pFindFirstVolumeA)(LPSTR,DWORD);
+static HANDLE (WINAPI *pFindFirstVolumeW)(LPWSTR,DWORD);
+static BOOL (WINAPI *pFindNextVolumeA)(HANDLE,LPSTR,DWORD);
+static BOOL (WINAPI *pFindNextVolumeW)(HANDLE,LPWSTR,DWORD);
+static BOOL (WINAPI *pFindVolumeClose)(HANDLE);
 
 static void test_GetDriveTypeA(void)
 {
@@ -140,6 +145,8 @@ static void test_GetDiskFreeSpaceA(void)
     DWORD sectors_per_cluster, bytes_per_sector, free_clusters, total_clusters;
     char drive[] = "?:\\";
     DWORD logical_drives;
+    char volume_guid[MAX_PATH + 1] = { 0 };
+    HANDLE handle;
 
     ret = GetDiskFreeSpaceA(NULL, &sectors_per_cluster, &bytes_per_sector, &free_clusters, &total_clusters);
     ok(ret, "GetDiskFreeSpaceA error %ld\n", GetLastError());
@@ -204,6 +211,19 @@ static void test_GetDiskFreeSpaceA(void)
         }
         logical_drives >>= 1;
     }
+
+    if (pFindFirstVolumeA) {
+        handle = pFindFirstVolumeA(volume_guid, MAX_PATH);
+        ok(handle != INVALID_HANDLE_VALUE, "FindFirstVolumeA error\n");
+        do {
+            ret = GetDiskFreeSpaceA(volume_guid, &sectors_per_cluster, &bytes_per_sector, &free_clusters, &total_clusters);
+            if (!ret)
+                /* GetDiskFreeSpaceA() should succeed, but it can fail with too many
+                   different GetLastError() results to be usable for an ok() */
+                trace("GetDiskFreeSpaceA(%s) failed with %ld\n", volume_guid, GetLastError());
+        } while (pFindNextVolumeA(handle, volume_guid, MAX_PATH));
+        pFindVolumeClose(handle);
+    }
 }
 
 static void test_GetDiskFreeSpaceW(void)
@@ -212,6 +232,8 @@ static void test_GetDiskFreeSpaceW(void)
     DWORD sectors_per_cluster, bytes_per_sector, free_clusters, total_clusters;
     WCHAR drive[] = {'?',':','\\',0};
     DWORD logical_drives;
+    WCHAR volume_guid[MAX_PATH + 1] = { 0 };
+    HANDLE handle;
     static const WCHAR empty_pathW[] = { 0 };
     static const WCHAR root_pathW[] = { '\\', 0 };
     static const WCHAR unix_style_root_pathW[] = { '/', 0 };
@@ -256,12 +278,30 @@ static void test_GetDiskFreeSpaceW(void)
         }
         logical_drives >>= 1;
     }
+
+    if (pFindFirstVolumeW) {
+        handle = pFindFirstVolumeW(volume_guid, MAX_PATH);
+        ok(handle != INVALID_HANDLE_VALUE, "FindFirstVolumeW error\n");
+        do {
+            ret = GetDiskFreeSpaceW(volume_guid, &sectors_per_cluster, &bytes_per_sector, &free_clusters, &total_clusters);
+            if (!ret)
+                /* GetDiskFreeSpaceW() should succeed, but it can fail with too many
+                   different GetLastError() results to be usable for an ok() */
+                trace("GetDiskFreeSpaceW(%ls) failed with %ld\n", volume_guid, GetLastError());
+        } while (pFindNextVolumeW(handle, volume_guid, MAX_PATH));
+        pFindVolumeClose(handle);
+    }
 }
 
 START_TEST(drive)
 {
     HANDLE hkernel32 = GetModuleHandleA("kernel32");
     pGetDiskFreeSpaceExA = (void *) GetProcAddress(hkernel32, "GetDiskFreeSpaceExA");
+    pFindFirstVolumeA = (void *) GetProcAddress(hkernel32, "FindFirstVolumeA");
+    pFindFirstVolumeW = (void *) GetProcAddress(hkernel32, "FindFirstVolumeW");
+    pFindNextVolumeA = (void *) GetProcAddress(hkernel32, "FindNextVolumeA");
+    pFindNextVolumeW = (void *) GetProcAddress(hkernel32, "FindNextVolumeW");
+    pFindVolumeClose = (void *) GetProcAddress(hkernel32, "FindVolumeClose");
 
     test_GetDriveTypeA();
     test_GetDriveTypeW();
