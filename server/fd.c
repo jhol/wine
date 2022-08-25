@@ -2417,6 +2417,10 @@ void default_fd_ioctl( struct fd *fd, ioctl_code_t code, struct async *async )
         unmount_device( fd );
         break;
 
+    case FSCTL_GET_REPARSE_POINT:
+        set_error( STATUS_NOT_A_REPARSE_POINT );
+        break;
+
     default:
         set_error( STATUS_NOT_SUPPORTED );
     }
