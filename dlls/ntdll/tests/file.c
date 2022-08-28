@@ -4246,10 +4246,27 @@ static void test_NtCreateFile(void)
         }
     }
 
-    pRtlFreeUnicodeString( &nameW );
     SetFileAttributesW(path, FILE_ATTRIBUTE_ARCHIVE);
     DeleteFileW( path );
 
+    status = pNtCreateFile( &handle, GENERIC_READ, &attr, &io, NULL, FILE_ATTRIBUTE_READONLY,
+                            FILE_SHARE_READ | FILE_SHARE_WRITE, FILE_CREATE, 0, NULL, 0);
+    ok(status == 0, "expected %#lx got %#lx\n", 0UL, status);
+    if (!status) {
+        CloseHandle(handle);
+
+        status = pNtCreateFile( &handle, FILE_WRITE_ATTRIBUTES, &attr, &io, NULL, 0,
+                                0, 0, 0, NULL, 0);
+        todo_wine
+        ok(status == 0, "expected %#lx got %#lx\n", 0UL, status);
+        if (!status)
+            CloseHandle(handle);
+    }
+
+    SetFileAttributesW(path, FILE_ATTRIBUTE_ARCHIVE);
+    DeleteFileW( path );
+
+    pRtlFreeUnicodeString( &nameW );
     wcscat( path, L"\\" );
     pRtlDosPathNameToNtPathName_U(path, &nameW, NULL, NULL);
 
